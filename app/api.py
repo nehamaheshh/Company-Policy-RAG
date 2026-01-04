@@ -1,9 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from app.ingest import ingest_pdf
 from app.rag import answer_question
 
 app = FastAPI(title="Company Policy LLM Bot")
+
+@app.get("/")
+def home():
+    return {"status": "ok", "message": "Go to /docs"}
 
 @app.post("/ingest/pdf")
 async def ingest_pdf_endpoint(
@@ -18,7 +22,14 @@ async def ingest_pdf_endpoint(
     ingest_pdf(company_id, doc_name, pdf_path)
     return {"status": "ok", "message": "PDF ingested successfully."}
 
+
+
+class ChatRequest(BaseModel):
+    company_id: str
+    question: str
+
+
+
 @app.post("/chat")
-async def chat(company_id: str, question: str):
-    answer = answer_question(company_id, question)
-    return {"answer": answer}
+async def chat(req: ChatRequest):
+    return answer_question(req.company_id, req.question, return_sources=True)
