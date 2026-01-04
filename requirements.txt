@@ -6,3 +6,4 @@ chromadb
 pypdf
 python-multipart
 requests
+streamlit
