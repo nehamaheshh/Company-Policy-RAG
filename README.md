@@ -158,6 +158,7 @@ UI:
 http://localhost:8501
 ```
 
+```
 📌 Current Limitations:
 
 OCR not enabled for scanned PDFs
@@ -167,6 +168,7 @@ Authentication & role-based access not implemented
 Page/section-level citations pending
 
 No automated evaluation suite yet
+
 
 
 
