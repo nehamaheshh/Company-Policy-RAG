@@ -71,18 +71,31 @@ Answer + Sources
 
 company-llm-bot/
 ├── app/
+
 │ ├── api.py # FastAPI endpoints (/ingest/pdf, /chat)
+
 │ ├── ingest.py # PDF ingestion pipeline
+
 │ ├── rag.py # Retrieval + reranking + prompt construction
+
 │ ├── llm_client.py # Ollama client
+
 │ ├── config.py # Config & paths
+
 │ └── init.py
+
 ├── frontend/
+
 │ └── app.py # Streamlit UI (upload + chat)
+
 ├── data/
+
 │ ├── raw/ # Uploaded policy PDFs (ignored in git)
+
 │ └── chroma/ # ChromaDB storage (ignored in git)
+
 ├── requirements.txt
+
 └── README.md
 
 
