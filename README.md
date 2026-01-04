@@ -134,6 +134,7 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 
 
+
 ### 2️⃣ Install dependencies
 pip install -r requirements.txt
 
@@ -151,6 +152,7 @@ http://127.0.0.1:8000/docs
 python -m streamlit run frontend/app.py
 UI:
 http://localhost:8501
+```
 
 📌 Current Limitations:
 
