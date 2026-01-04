@@ -1,0 +1,134 @@
+COMPANY POLICY CHATBOT (LOCAL RAG) — HOW TO USE (WINDOWS)
+
+0) WHAT YOU NEED
+- Windows 10/11
+- Python 3.10+ installed and added to PATH
+- Git installed (optional, for cloning)
+- Ollama installed (https://ollama.com/download)
+- At least ~16 GB RAM recommended
+- (Optional) NVIDIA GPU for faster local inference
+
+1) DOWNLOAD / CLONE THE PROJECT
+Option A: Clone
+  git clone <your-github-repo-url>
+  cd company-llm-bot
+
+Option B: Download ZIP from GitHub and extract, then:
+  cd <extracted-folder>
+
+2) CREATE & ACTIVATE A VIRTUAL ENVIRONMENT
+Open PowerShell in the project folder:
+
+  python -m venv venv
+  .\venv\Scripts\Activate.ps1
+
+If PowerShell blocks activation, run (one-time):
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Then activate again:
+  .\venv\Scripts\Activate.ps1
+
+3) INSTALL PYTHON DEPENDENCIES
+  pip install -r requirements.txt
+
+4) INSTALL OLLAMA + DOWNLOAD A MODEL
+A) Install Ollama from:
+   https://ollama.com/download
+
+B) Verify Ollama works:
+   ollama --version
+
+C) Pull the model used by this project (recommended):
+   ollama pull llama3:8b
+
+NOTE:
+- If you have limited resources, you can try a smaller model like:
+  ollama pull llama3.2:3b
+  (Then update the model name in app/config.py if needed.)
+
+5) START OLLAMA SERVER (ONLY IF NEEDED)
+Usually Ollama runs automatically in the background.
+If your API cannot connect to Ollama, start it manually in a separate terminal:
+
+  ollama serve
+
+Leave this terminal running.
+
+6) RUN THE BACKEND (FASTAPI)
+Open a terminal in the project root (venv activated) and run:
+
+  python -m uvicorn app.api:app --reload
+
+You should see:
+  Uvicorn running on http://127.0.0.1:8000
+
+Open API docs (Swagger):
+  http://127.0.0.1:8000/docs
+
+7) RUN THE FRONTEND (STREAMLIT)
+Open a SECOND terminal (venv activated) and run:
+
+  python -m streamlit run frontend/app.py
+
+Streamlit UI opens at:
+  http://localhost:8501
+
+8) INGEST / UPLOAD A POLICY PDF
+In the Streamlit sidebar:
+- Company ID: e.g., acme
+- Document Name: e.g., handbook_2025
+- Upload the PDF and click “Upload & Ingest”
+
+OR via Swagger:
+- Go to /docs
+- Use POST /ingest/pdf
+- Provide company_id, doc_name, and the PDF file
+
+9) ASK QUESTIONS (CHAT)
+In the Streamlit chat:
+- Ask policy questions like:
+  “What is the sick leave policy?”
+  “How do I report harassment?”
+
+The bot will:
+- Retrieve relevant policy chunks from ChromaDB
+- Rerank the chunks for precision
+- Ask the local LLM (Ollama) to answer using ONLY the retrieved text
+- Provide citations/sources (chunk references)
+
+10) IMPORTANT NOTES
+- This system uses RAG (Retrieval-Augmented Generation).
+- It will NOT invent policies. If something is not in the document, it should say so.
+- Best results come from text-based PDFs. Scanned PDFs may need OCR (not yet enabled).
+- Do NOT commit company PDFs or vector DB files to GitHub.
+
+11) TROUBLESHOOTING
+A) 'uvicorn' or 'streamlit' not recognized:
+Use python module form:
+  python -m uvicorn app.api:app --reload
+  python -m streamlit run frontend/app.py
+
+B) API error: cannot connect to Ollama:
+- Ensure Ollama is installed
+- Ensure the model is pulled: ollama pull llama3:8b
+- Ensure server is running: ollama serve
+- Check Ollama URL in app/config.py (default http://localhost:11434)
+
+C) 422 error on /chat (missing company_id/question):
+- Ensure the frontend sends JSON body and backend accepts JSON (Pydantic model).
+- If your backend expects query params, update it to accept JSON.
+
+D) Ingestion succeeds but answers look off:
+- Try asking more specific questions
+- Re-upload / re-ingest the PDF
+- Increase Retrieve N and/or adjust Top K in the Streamlit settings
+
+12) OPTIONAL: CLEAN LOCAL DATA
+To reset local knowledge (will delete stored vectors and raw PDFs):
+- Delete:
+  data\chroma\
+  data\raw\
+
+Then re-ingest PDFs.
+
+END.
