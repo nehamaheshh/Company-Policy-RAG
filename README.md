@@ -145,11 +145,15 @@ ollama pull llama3:8b
 
 ### ▶️ Run Backend (FastAPI)
 python -m uvicorn app.api:app --reload
+
+```
 Swagger UI:
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8000/docs 
+```
 
 ### 🖥️ Run Frontend (Streamlit)
 python -m streamlit run frontend/app.py
+```
 UI:
 http://localhost:8501
 ```
@@ -157,8 +161,11 @@ http://localhost:8501
 📌 Current Limitations:
 
 OCR not enabled for scanned PDFs
+
 Authentication & role-based access not implemented
+
 Page/section-level citations pending
+
 No automated evaluation suite yet
 
 
