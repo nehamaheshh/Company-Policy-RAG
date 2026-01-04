@@ -156,10 +156,8 @@ python -m streamlit run frontend/app.py
 ```
 UI:
 http://localhost:8501
-```
 
-```
-📌 Current Limitations:
+### 📌 Current Limitations:
 
 OCR not enabled for scanned PDFs
 
