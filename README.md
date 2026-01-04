@@ -1,7 +1,7 @@
 # 🏢 Company Policy Chatbot (Local RAG System)
 
-A **local, privacy-preserving company policy chatbot** built using **FastAPI, ChromaDB, and Ollama**.  
-Organizations can upload internal policy documents (PDFs), and employees can ask questions that are answered **strictly based on the uploaded policies**, with **no hallucinations**.
+A **local, privacy-preserving company policy chatbot** built with **FastAPI, ChromaDB, and Ollama**.  
+Organizations can upload internal policy documents (PDFs), and employees can ask questions that are answered **strictly based on the uploaded policies**, with **grounded citations** and **safe refusals** when content is not present.
 
 This project implements a **Retrieval-Augmented Generation (RAG)** pipeline that runs **entirely on-prem / locally**, making it suitable for sensitive enterprise data (HR, Legal, Compliance).
 
@@ -9,39 +9,45 @@ This project implements a **Retrieval-Augmented Generation (RAG)** pipeline that
 
 ## ✨ Key Features
 
-- 📄 Upload company policy PDFs (HR, compliance, employee handbooks)
-- 🔍 Semantic search over policies using vector embeddings
+- 📄 Upload policy PDFs via API (supports multi-company ingestion)
+- 🔍 Semantic retrieval using embeddings + ChromaDB
+- 🎯 **Reranking** for higher answer precision (retrieve wide → rerank smart → answer narrow)
 - 🧠 Local LLM inference via Ollama (no cloud APIs)
-- 🧷 Grounded answers with source references
+- 🧷 Grounded answers with source metadata
 - 🚫 Safe refusals when a policy is not explicitly covered
-- 🏢 Multi-company support via metadata filtering
-- ⚙️ Modular, extensible backend architecture
+- 🖥️ Streamlit frontend for upload + chat
+- ⚙️ Modular backend (easy to extend: auth, OCR, versioning)
 
 ---
 
 ## 🧠 High-Level Architecture
 
-```
 PDF Upload
-   ↓
+↓
+Save raw PDF (audit & reproducibility)
+↓
 Text Extraction
-   ↓
+↓
 Chunking
-   ↓
+↓
 Embeddings
-   ↓
+↓
 ChromaDB (Vector Store)
-   ↓
+↓
 User Question
-   ↓
-Semantic Retrieval + Reranking
-   ↓
-Prompt Construction
-   ↓
+↓
+Question Embedding
+↓
+Retrieve N candidates
+↓
+Rerank → Top K evidence
+↓
+Prompt Construction (grounded)
+↓
 Local LLM (Ollama / LLaMA 3)
-   ↓
-Answer + Citations
-```
+↓
+Answer + Sources
+
 
 ---
 
@@ -49,34 +55,36 @@ Answer + Citations
 
 | Component | Technology |
 |---------|------------|
-| API | FastAPI |
-| Vector Database | ChromaDB |
+| Backend API | FastAPI |
+| Vector Database | ChromaDB (persistent) |
 | Embeddings | SentenceTransformers (BGE) |
+| Reranker | Cross-Encoder (MS MARCO MiniLM) |
 | LLM Runtime | Ollama |
 | LLM Model | LLaMA 3 (8B) |
 | PDF Parsing | pypdf |
-| Language | Python |
+| Frontend | Streamlit |
 | OS | Windows (tested), portable |
 
 ---
 
 ## 📁 Project Structure
 
-```
 company-llm-bot/
 ├── app/
-│   ├── api.py          # FastAPI endpoints
-│   ├── ingest.py       # PDF ingestion pipeline
-│   ├── rag.py          # Retrieval + RAG logic
-│   ├── llm_client.py   # Ollama client
-│   ├── config.py       # Config & paths
-│   └── __init__.py
+│ ├── api.py # FastAPI endpoints (/ingest/pdf, /chat)
+│ ├── ingest.py # PDF ingestion pipeline
+│ ├── rag.py # Retrieval + reranking + prompt construction
+│ ├── llm_client.py # Ollama client
+│ ├── config.py # Config & paths
+│ └── init.py
+├── frontend/
+│ └── app.py # Streamlit UI (upload + chat)
 ├── data/
-│   ├── raw/            # Uploaded policy PDFs (source of truth)
-│   └── chroma/         # ChromaDB persistent storage
+│ ├── raw/ # Uploaded policy PDFs (ignored in git)
+│ └── chroma/ # ChromaDB storage (ignored in git)
 ├── requirements.txt
 └── README.md
-```
+
 
 ---
 
@@ -84,7 +92,7 @@ company-llm-bot/
 
 ### 1️⃣ Policy Ingestion (`POST /ingest/pdf`)
 1. Admin uploads a policy PDF  
-2. PDF is saved to `data/raw/` (audit & reproducibility)  
+2. PDF is saved to `data/raw/` for auditability  
 3. Text is extracted page-by-page  
 4. Text is chunked with overlap  
 5. Each chunk is embedded into vectors  
@@ -93,111 +101,63 @@ company-llm-bot/
 ### 2️⃣ Question Answering (`POST /chat`)
 1. User submits a question  
 2. Question is embedded into a vector  
-3. ChromaDB retrieves top-N relevant chunks  
-4. Retrieved chunks are **reranked** for precision  
-5. A grounded prompt is built  
-6. Ollama runs the local LLM  
-7. Answer is returned with citations or a safe refusal  
-
----
-
-## 🛡️ Safety & Reliability
-
-- ❌ No hallucinated answers  
-- ✅ Answers strictly use retrieved policy text  
-- ⚠️ Explicit “not found” responses when policies don’t exist  
-- 🔍 Source chunk references included  
-- 🔐 All data stays local  
-
-This behavior is **intentional** and **enterprise-safe**.
+3. ChromaDB retrieves **N candidate chunks**  
+4. Candidates are **reranked** and top **K chunks** are selected  
+5. A grounded prompt is constructed  
+6. Ollama generates a response locally  
+7. Answer is returned with sources and confidence  
 
 ---
 
 ## 🧠 Why RAG Over Fine-Tuning?
 
-Fine-tuning is not well-suited for internal policy systems.
+Fine-tuning is not ideal for internal policy systems where content changes frequently and auditability matters.
 
-**Retrieval-Augmented Generation (RAG)** was chosen because:
+**RAG was chosen because:**
 
-- 📄 **Policies change frequently** → RAG updates instantly by re-indexing documents  
-- 🚫 **Hallucination prevention** → LLM only sees retrieved policy text  
-- 🔍 **Auditability** → answers are traceable to specific document chunks  
-- 🔄 **Model flexibility** → swap LLMs without retraining  
-- 🔐 **On-prem deployment** → no sensitive data sent to cloud APIs  
+- 📄 **Instant updates** via document re-indexing
+- 🚫 **Lower hallucination risk**
+- 🔍 **Traceable answers** with document sources
+- 🔄 **Model flexibility** without retraining
+- 🔐 **On-prem privacy** for sensitive data
 
 > **Fine-tuning teaches a model how to speak.  
 > RAG teaches a system what to know — safely.**
 
 ---
 
-## 🚀 Setup Instructions
+## 🚀 Setup (Windows)
 
-### 1️⃣ Create virtual environment
+### 1️⃣ Create & activate virtual environment
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-```
+
 
 ### 2️⃣ Install dependencies
-```powershell
 pip install -r requirements.txt
-```
+
 
 ### 3️⃣ Install Ollama & pull model
-Download Ollama from: https://ollama.com/download
-
-```powershell
 ollama pull llama3:8b
-```
 
-### 4️⃣ Run the API
-```powershell
+
+### ▶️ Run Backend (FastAPI)
 python -m uvicorn app.api:app --reload
-```
+Swagger UI:
+http://127.0.0.1:8000/docs
 
-Open:
-👉 http://127.0.0.1:8000/docs
+### 🖥️ Run Frontend (Streamlit)
+python -m streamlit run frontend/app.py
+UI:
+http://localhost:8501
 
----
+📌 Current Limitations:
 
-## 🧪 Example Usage
+OCR not enabled for scanned PDFs
+Authentication & role-based access not implemented
+Page/section-level citations pending
+No automated evaluation suite yet
 
-### Upload a policy PDF
-`POST /ingest/pdf`
 
-- `company_id`: `acme`
-- `doc_name`: `handbook_2025`
-- `file`: employee handbook PDF
 
-### Ask a question
-`POST /chat`
-
-```json
-{
-  "company_id": "acme",
-  "question": "What is the sick leave policy?"
-}
-```
-
----
-
-## 📌 Current Limitations
-
-- OCR not enabled for scanned PDFs  
-- Authentication & role-based access not yet implemented  
-- Page/section-level citations pending  
-- No frontend UI (API-only)  
-
----
-
-## 🔜 Planned Improvements
-
-- 🔐 JWT authentication & role-based access  
-- 📑 Page + section citations  
-- 🧠 Hybrid retrieval (semantic + keyword)  
-- 🧪 Evaluation harness for answer quality  
-- 🖥️ Web UI (Streamlit / React)  
-- 📦 Dockerized deployment  
-- 📚 Document versioning & lifecycle management  
-
----
